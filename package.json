@@ -15,7 +15,7 @@
     "publish-packages": "changeset publish",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "deploy-storybook": "pnpm build-storybook && touch storybook-static/.nojekyll && gh-pages -d storybook-static"
+    "deploy-storybook": "pnpm build-storybook && touch storybook-static/.nojekyll && gh-pages -d storybook-static --dotfiles"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
