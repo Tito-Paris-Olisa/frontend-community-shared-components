@@ -9,7 +9,12 @@ export type FecDialogProps = DialogProps & {
   actions?: ReactNode;
 };
 
-export function FecDialog({ title, actions, children, ...dialogProps }: FecDialogProps) {
+export function FecDialog({
+  title,
+  actions,
+  children,
+  ...dialogProps
+}: FecDialogProps) {
   return (
     <MuiDialog {...dialogProps}>
       {title && <DialogTitle>{title}</DialogTitle>}

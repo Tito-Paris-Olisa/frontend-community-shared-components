@@ -4,7 +4,7 @@ import Button from "@mui/material/Button";
 
 const meta = {
   title: "fec/FecDialog",
-  component: FecDialog
+  component: FecDialog,
 } satisfies Meta<typeof FecDialog>;
 
 export default meta;
@@ -23,6 +23,6 @@ export const Default: Story = {
           Confirm
         </Button>
       </>
-    )
-  }
+    ),
+  },
 };

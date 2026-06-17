@@ -3,7 +3,7 @@ import { SalesTextInput } from "./SalesTextInput";
 
 const meta = {
   title: "sales/SalesTextInput",
-  component: SalesTextInput
+  component: SalesTextInput,
 } satisfies Meta<typeof SalesTextInput>;
 
 export default meta;
@@ -13,16 +13,16 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     label: "Email",
-    variant: "outlined"
-  }
+    variant: "outlined",
+  },
 };
 
 export const WithHelperText: Story = {
   args: {
     label: "Email",
     helperText: "We'll never share your email",
-    variant: "outlined"
-  }
+    variant: "outlined",
+  },
 };
 
 export const Error: Story = {
@@ -30,6 +30,6 @@ export const Error: Story = {
     label: "Email",
     error: true,
     helperText: "Invalid email address",
-    variant: "outlined"
-  }
+    variant: "outlined",
+  },
 };
