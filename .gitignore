@@ -24,3 +24,6 @@ coverage/
 # editors
 .vscode/
 .idea/
+
+# storybook build output
+storybook-static/
