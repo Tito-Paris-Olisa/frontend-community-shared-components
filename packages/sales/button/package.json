@@ -1,0 +1,26 @@
+{
+  "name": "@tito-paris-olisa/sales-button",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "echo \"No lint yet\"",
+    "test": "echo \"No tests yet\"",
+    "storybook": "echo \"Storybook not configured yet\""
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  }
+}
