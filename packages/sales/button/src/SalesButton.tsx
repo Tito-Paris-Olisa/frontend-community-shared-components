@@ -1,7 +1,7 @@
-export type SalesButtonProps = {
-  label?: string;
-};
+import MuiButton, { ButtonProps } from "@mui/material/Button";
 
-export function SalesButton({ label = "SalesButton" }: SalesButtonProps) {
-  return <div>{label}</div>;
+export type SalesButtonProps = ButtonProps;
+
+export function SalesButton(props: SalesButtonProps) {
+  return <MuiButton {...props} />;
 }

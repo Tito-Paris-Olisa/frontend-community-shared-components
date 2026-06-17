@@ -12,6 +12,24 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    label: "SalesTextInput"
+    label: "Email",
+    variant: "outlined"
+  }
+};
+
+export const WithHelperText: Story = {
+  args: {
+    label: "Email",
+    helperText: "We'll never share your email",
+    variant: "outlined"
+  }
+};
+
+export const Error: Story = {
+  args: {
+    label: "Email",
+    error: true,
+    helperText: "Invalid email address",
+    variant: "outlined"
   }
 };

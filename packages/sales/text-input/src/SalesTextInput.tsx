@@ -1,7 +1,7 @@
-export type SalesTextInputProps = {
-  label?: string;
-};
+import MuiTextField, { TextFieldProps } from "@mui/material/TextField";
 
-export function SalesTextInput({ label = "SalesTextInput" }: SalesTextInputProps) {
-  return <div>{label}</div>;
+export type SalesTextInputProps = TextFieldProps;
+
+export function SalesTextInput(props: SalesTextInputProps) {
+  return <MuiTextField {...props} />;
 }

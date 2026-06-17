@@ -12,6 +12,22 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    label: "SalesButton"
+    children: "Click me",
+    variant: "contained"
+  }
+};
+
+export const Outlined: Story = {
+  args: {
+    children: "Click me",
+    variant: "outlined"
+  }
+};
+
+export const Disabled: Story = {
+  args: {
+    children: "Click me",
+    variant: "contained",
+    disabled: true
   }
 };

@@ -1,1 +1,26 @@
+# env
 .env
+.env.local
+
+# dependencies
+node_modules/
+.pnpm-store/
+
+# turbo
+.turbo/
+**/.turbo/
+
+# builds
+dist/
+**/dist/
+coverage/
+
+# logs
+*.log
+
+# mac
+.DS_Store
+
+# editors
+.vscode/
+.idea/
