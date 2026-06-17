@@ -29,6 +29,9 @@ writeFileSync(
     {
       name: `@${GITHUB_SCOPE}/${scope}-${packageName}`,
       version: "0.0.1",
+      publishConfig: {
+        registry: "https://npm.pkg.github.com",
+      },
       private: false,
       type: "module",
       main: "./dist/index.js",
