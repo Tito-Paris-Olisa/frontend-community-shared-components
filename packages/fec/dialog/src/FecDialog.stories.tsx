@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import Button from "@mui/material/Button";
+import { useState } from "react";
 import { FecDialog } from "./FecDialog";
 
 const meta = {
@@ -15,9 +16,6 @@ const meta = {
     },
   },
   argTypes: {
-    actions: {
-      control: false,
-    },
     children: {
       control: "text",
     },
@@ -29,15 +27,37 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+  render: (args) => {
+    const [open, setOpen] = useState(true);
+    const [confirmed, setConfirmed] = useState(false);
+
+    return (
+      <>
+        <Button
+          variant="outlined"
+          onClick={() => {
+            setConfirmed(false);
+            setOpen(true);
+          }}
+        >
+          Open Dialog
+        </Button>
+        {confirmed && (
+          <p style={{ marginTop: 16, color: "green", fontWeight: 600 }}>
+            ✓ Action confirmed!
+          </p>
+        )}
+        <FecDialog
+          {...args}
+          open={open}
+          onClose={() => setOpen(false)}
+          onConfirm={() => setConfirmed(true)}
+        />
+      </>
+    );
+  },
   args: {
-    open: false,
     title: "Dialog Title",
     children: "This is the dialog content.",
-    actions: (
-      <>
-        <Button>Cancel</Button>
-        <Button variant="contained">Confirm</Button>
-      </>
-    ),
   },
 };
