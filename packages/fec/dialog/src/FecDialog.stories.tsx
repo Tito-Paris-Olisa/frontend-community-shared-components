@@ -59,5 +59,6 @@ export const Default: Story = {
   args: {
     title: "Dialog Title",
     children: "This is the dialog content.",
+    confirmDisabled: false,
   },
 };

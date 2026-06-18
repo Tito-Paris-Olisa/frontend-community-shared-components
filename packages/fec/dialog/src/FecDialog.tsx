@@ -13,6 +13,7 @@ export type FecDialogProps = Omit<DialogProps, "open" | "onClose"> & {
   onCancel?: () => void;
   confirmLabel?: string;
   cancelLabel?: string;
+   confirmDisabled?: boolean;
 };
 
 export function FecDialog({
@@ -24,6 +25,7 @@ export function FecDialog({
   onCancel,
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
+  confirmDisabled = false,
   ...dialogProps
 }: FecDialogProps) {
   const [open, setOpen] = useState(openProp);
@@ -55,7 +57,11 @@ export function FecDialog({
       <DialogContent>{children}</DialogContent>
       <DialogActions>
         <Button onClick={handleCancel}>{cancelLabel}</Button>
-        <Button variant="contained" onClick={handleConfirm}>
+        <Button
+          variant="contained"
+          onClick={handleConfirm}
+          disabled={confirmDisabled}
+        >
           {confirmLabel}
         </Button>
       </DialogActions>
