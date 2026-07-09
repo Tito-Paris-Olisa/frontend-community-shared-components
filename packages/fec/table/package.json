@@ -1,0 +1,42 @@
+{
+  "name": "@tito-paris-olisa/fec-table",
+  "version": "0.0.1",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tito-Paris-Olisa/frontend-community-shared-components.git",
+    "directory": "packages/fec/table"
+  },
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "echo \"No lint yet\"",
+    "test": "echo \"No tests yet\"",
+    "storybook": "echo \"Storybook not configured yet\""
+  },
+  "peerDependencies": {
+    "@emotion/react": ">=11",
+    "@emotion/styled": ">=11",
+    "@mui/material": ">=5",
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^5.17.1"
+  }
+}
