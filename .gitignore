@@ -27,3 +27,6 @@ coverage/
 
 # storybook build output
 storybook-static/
+
+# deploy-storybook.mjs worktree (created at runtime, should never be committed)
+.gh-pages-worktree/

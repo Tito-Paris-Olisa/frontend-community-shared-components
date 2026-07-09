@@ -1,0 +1,107 @@
+name: Release & Deploy Storybook
+
+# Triggers:
+#   push to main  — changesets creates/updates a "Version Packages" PR, or
+#                   publishes packages when that PR is merged (and then
+#                   deploys Storybook automatically).
+#   manual        — lets you deploy any specific version without a release.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      storybook-version:
+        description: "Storybook version to deploy (e.g. v0.0.3) — skips publish"
+        required: true
+
+# Prevent concurrent runs that could race on the gh-pages branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release & deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push to gh-pages + create releases/tags
+      pull-requests: write # changesets PR management
+      packages: write # publish to GitHub Packages
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history is needed so the deploy script can add a git worktree
+          # for the gh-pages branch and so changesets can diff properly.
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Toolchain ────────────────────────────────────────────────────────────
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        # Version is read from packageManager field in package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      # ── Publish (auto, push-to-main only) ────────────────────────────────────
+      - name: Publish packages / Create version PR
+        if: github.event_name == 'push'
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          # When a "Version Packages" PR is merged, this runs `pnpm publish-packages`
+          # and creates GitHub Releases + git tags for each published package.
+          publish: pnpm publish-packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # .npmrc already sets //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+          # so no separate NPM_TOKEN is required for GitHub Packages.
+
+      # ── Determine Storybook version ──────────────────────────────────────────
+      - name: Determine Storybook version
+        id: sb-version
+        # Run when packages were just published OR when triggered manually.
+        if: >-
+          (github.event_name == 'push' && steps.changesets.outputs.published == 'true')
+          || github.event_name == 'workflow_dispatch'
+        env:
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+          MANUAL_VERSION: ${{ inputs.storybook-version }}
+        run: |
+          if [ -n "$MANUAL_VERSION" ]; then
+            # Manual dispatch: use the provided version directly.
+            echo "version=$MANUAL_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            # Auto: pick the highest semantic version from publishedPackages.
+            VERSION=$(node -e "
+              const pkgs = JSON.parse(process.env.PUBLISHED_PACKAGES || '[]');
+              if (!pkgs.length) { process.stderr.write('No published packages\n'); process.exit(1); }
+              const sorted = pkgs
+                .map(p => p.version)
+                .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+              process.stdout.write('v' + sorted[0]);
+            ")
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Deploy Storybook ─────────────────────────────────────────────────────
+      - name: Deploy Storybook ${{ steps.sb-version.outputs.version }}
+        if: steps.sb-version.outputs.version != ''
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          # GITHUB_TOKEN is inherited from the job-level token; the remote URL
+          # set by actions/checkout@v4 already includes it, so git push works.
+        run: node scripts/deploy-storybook.mjs ${{ steps.sb-version.outputs.version }}
