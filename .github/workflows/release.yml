@@ -24,10 +24,15 @@ jobs:
   release:
     name: Release & deploy
     runs-on: ubuntu-latest
+    # Promote GITHUB_TOKEN to job-level so every step and every child
+    # process (including npm subprocesses spawned by `changeset publish`)
+    # can resolve the ${GITHUB_TOKEN} variable in .npmrc.
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
-      contents: write # push to gh-pages + create releases/tags
-      pull-requests: write # changesets PR management
-      packages: write # publish to GitHub Packages
+      contents: write       # push to gh-pages + create releases/tags
+      pull-requests: write  # changesets PR management
+      packages: write       # publish to GitHub Packages
 
     steps:
       # ── Checkout ────────────────────────────────────────────────────────────
@@ -66,9 +71,7 @@ jobs:
           # and creates GitHub Releases + git tags for each published package.
           publish: pnpm publish-packages
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # .npmrc already sets //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
-          # so no separate NPM_TOKEN is required for GitHub Packages.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # also required by the action for GitHub API calls (PRs, releases)
 
       # ── Determine Storybook version ──────────────────────────────────────────
       - name: Determine Storybook version
