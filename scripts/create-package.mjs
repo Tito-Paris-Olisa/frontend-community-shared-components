@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const GITHUB_SCOPE = "tito-paris-olisa";
+const GITHUB_REPO = "https://github.com/Tito-Paris-Olisa/frontend-community-shared-components.git";
 
 const [, , scope, packageName, componentName] = process.argv;
 
@@ -31,6 +32,11 @@ writeFileSync(
       version: "0.0.1",
       publishConfig: {
         registry: "https://npm.pkg.github.com",
+      },
+      repository: {
+        type: "git",
+        url: GITHUB_REPO,
+        directory: `packages/${scope}/${packageName}`,
       },
       private: false,
       type: "module",

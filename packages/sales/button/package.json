@@ -4,6 +4,11 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tito-Paris-Olisa/frontend-community-shared-components.git",
+    "directory": "packages/sales/button"
+  },
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
