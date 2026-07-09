@@ -30,9 +30,9 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
-      contents: write       # push to gh-pages + create releases/tags
-      pull-requests: write  # changesets PR management
-      packages: write       # publish to GitHub Packages
+      contents: write # push to gh-pages + create releases/tags
+      pull-requests: write # changesets PR management
+      packages: write # publish to GitHub Packages
 
     steps:
       # ── Checkout ────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ jobs:
           # and creates GitHub Releases + git tags for each published package.
           publish: pnpm publish-packages
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # also required by the action for GitHub API calls (PRs, releases)
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # also required by the action for GitHub API calls (PRs, releases)
 
       # ── Determine Storybook version ──────────────────────────────────────────
       - name: Determine Storybook version
