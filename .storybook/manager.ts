@@ -1,35 +1,53 @@
 /**
- * Storybook manager entry — registers a version-switcher toolbar item.
+ * Storybook manager entry — registers a preview-build switcher toolbar item.
  *
  * When deployed on GitHub Pages at paths like:
- *   https://owner.github.io/repo-name/v0.0.3/
+ *   https://owner.github.io/repo-name/previews/preview-003/
  *   https://owner.github.io/repo-name/latest/
  *
- * …this reads  /repo-name/versions.json  and renders a dropdown that lets
- * users navigate between all deployed versions.  Silently does nothing when
- * running locally (versions.json won't exist at localhost).
+ * …this reads /repo-name/preview-builds.json and renders a dropdown that lets
+ * users navigate between all deployed preview builds. Silently does nothing
+ * when running locally (preview-builds.json will not exist at localhost).
  */
 import React, { createElement, useEffect, useState } from "react";
 import { addons, types } from "storybook/manager-api";
 
-const ADDON_ID = "storybook/version-switcher";
+type ChangedPackage = {
+  name: string;
+  version: string;
+};
+
+type PreviewBuild = {
+  previewId: string;
+  url: string;
+  deployedAt: string;
+  deployedCommitSha: string;
+  changedPackages: ChangedPackage[];
+  sourcePullRequest?: {
+    number?: number;
+    title: string;
+    url: string;
+  };
+};
+
+const ADDON_ID = "storybook/preview-build-switcher";
 const TOOL_ID = `${ADDON_ID}/tool`;
 
 // ── URL helpers ───────────────────────────────────────────────────────────────
 
 /**
- * Given a GitHub Pages URL like https://owner.github.io/repo-name/v0.0.3/
- * returns  https://owner.github.io/repo-name/versions.json.
+ * Given a GitHub Pages URL like https://owner.github.io/repo-name/previews/preview-003/
+ * returns https://owner.github.io/repo-name/preview-builds.json.
  *
  * Returns null when running locally or outside the expected URL pattern
- * (fewer than 2 path segments after the origin).
+ * (fewer than 2 path segments after the origin: /repo-name/<segment>/...).
  */
-function getVersionsUrl(): string | null {
+function getPreviewBuildsUrl(): string | null {
   const { origin, pathname } = window.location;
   const segments = pathname.split("/").filter(Boolean);
-  // Need at least [repoName, versionDir]
+  // Need at least [repoName, currentTopLevelDir]
   if (segments.length < 2) return null;
-  return `${origin}/${segments[0]}/versions.json`;
+  return `${origin}/${segments[0]}/preview-builds.json`;
 }
 
 /** Derives the site root (https://owner.github.io/repo-name/) from the current URL. */
@@ -39,40 +57,106 @@ function getSiteRoot(): string {
   return `${origin}/${segments[0]}/`;
 }
 
-/** Returns the currently active version segment (e.g. "v0.0.3" or "latest"). */
-function getCurrentVersion(): string {
+/** Returns current target as either latest or a preview id. */
+function getCurrentTarget(): { mode: "latest" } | { mode: "preview"; previewId: string } {
   const segments = window.location.pathname.split("/").filter(Boolean);
-  return segments[1] ?? "latest";
+
+  if (segments[1] === "previews" && segments[2]) {
+    return { mode: "preview", previewId: segments[2] };
+  }
+
+  return { mode: "latest" };
+}
+
+function normalize(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function getCurrentStoryId(): string | null {
+  const path = new URLSearchParams(window.location.search).get("path");
+  if (!path) return null;
+
+  const storyMatch = path.match(/^\/story\/([^/?]+)/);
+  if (storyMatch?.[1]) return storyMatch[1];
+
+  const docsMatch = path.match(/^\/docs\/([^/?]+)/);
+  if (docsMatch?.[1]) return docsMatch[1];
+
+  return null;
+}
+
+function getPackageStoryKey(packageName: string): string {
+  const parts = packageName.split("/");
+  const slug = parts[1] ?? packageName;
+  return normalize(slug);
+}
+
+function isBuildRelevantToStory(build: PreviewBuild, storyId: string | null): boolean {
+  if (!storyId) return false;
+  const normalizedStoryId = normalize(storyId);
+
+  return build.changedPackages.some((pkg) => {
+    const key = getPackageStoryKey(pkg.name);
+    return key.length > 0 && normalizedStoryId.includes(key);
+  });
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function VersionSwitcher() {
-  const [versions, setVersions] = useState<string[]>([]);
+function PreviewBuildSwitcher() {
+  const [previewBuilds, setPreviewBuilds] = useState<PreviewBuild[]>([]);
+  const [selectedValue, setSelectedValue] = useState<string>("latest");
 
   useEffect(() => {
-    const url = getVersionsUrl();
+    const url = getPreviewBuildsUrl();
     if (!url) return;
 
     fetch(url)
       .then((res) => {
         if (!res.ok) return;
-        return res.json() as Promise<string[]>;
+        return res.json() as Promise<PreviewBuild[]>;
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setVersions(data);
+        if (Array.isArray(data)) {
+          const validBuilds = data.filter(
+            (entry) =>
+              entry &&
+              typeof entry.previewId === "string" &&
+              typeof entry.url === "string" &&
+              Array.isArray(entry.changedPackages),
+          );
+
+          if (validBuilds.length > 0) {
+            setPreviewBuilds(validBuilds);
+          }
         }
       })
       .catch(() => {
-        // Silently ignore — probably running locally where versions.json doesn't exist.
+        // Silently ignore — probably running locally where preview-builds.json does not exist.
       });
   }, []);
 
-  if (!versions.length) return null;
+  useEffect(() => {
+    const current = getCurrentTarget();
+    setSelectedValue(current.mode === "latest" ? "latest" : current.previewId);
+  }, []);
 
-  const current = getCurrentVersion();
+  if (!previewBuilds.length) return null;
+
   const siteRoot = getSiteRoot();
+  const storyId = getCurrentStoryId();
+  const relevantPreviewIds = new Set(
+    previewBuilds
+      .filter((build) => isBuildRelevantToStory(build, storyId))
+      .map((build) => build.previewId),
+  );
+
+  const selectedPreviewBuild =
+    selectedValue === "latest"
+      ? null
+      : previewBuilds.find((build) => build.previewId === selectedValue) ?? null;
+
+  const relevantCount = relevantPreviewIds.size;
 
   return createElement(
     "div",
@@ -89,7 +173,7 @@ function VersionSwitcher() {
     createElement(
       "label",
       {
-        htmlFor: "sb-version-select",
+        htmlFor: "sb-preview-build-select",
         style: {
           fontSize: "12px",
           fontWeight: 600,
@@ -99,16 +183,24 @@ function VersionSwitcher() {
           whiteSpace: "nowrap",
         },
       },
-      "Version",
+      "Preview builds",
     ),
     createElement(
       "select",
       {
-        id: "sb-version-select",
-        value: current,
-        title: "Switch to a different deployed version",
+        id: "sb-preview-build-select",
+        value: selectedValue,
+        title: "Switch to a different deployed preview build",
         onChange: (e: React.ChangeEvent<HTMLSelectElement>) => {
-          window.location.href = `${siteRoot}${e.target.value}/`;
+          const value = e.target.value;
+          setSelectedValue(value);
+
+          if (value === "latest") {
+            window.location.href = `${siteRoot}latest/`;
+            return;
+          }
+
+          window.location.href = `${siteRoot}previews/${value}/`;
         },
         style: {
           fontSize: "12px",
@@ -122,11 +214,50 @@ function VersionSwitcher() {
       },
       [
         createElement("option", { key: "latest", value: "latest" }, "latest"),
-        ...versions.map((v) =>
-          createElement("option", { key: v, value: v }, v),
+        ...previewBuilds.map((build) =>
+          createElement(
+            "option",
+            { key: build.previewId, value: build.previewId },
+            relevantPreviewIds.has(build.previewId)
+              ? `${build.previewId} (relevant)`
+              : build.previewId,
+          ),
         ),
       ],
     ),
+    createElement(
+      "span",
+      {
+        style: {
+          fontSize: "11px",
+          color: "inherit",
+          opacity: 0.75,
+          whiteSpace: "nowrap",
+        },
+        title: "Preview builds relevant to this story based on changed packages",
+      },
+      storyId ? `${relevantCount} relevant` : "all previews",
+    ),
+    selectedPreviewBuild?.sourcePullRequest?.url
+      ? createElement(
+          "a",
+          {
+            href: selectedPreviewBuild.sourcePullRequest.url,
+            target: "_blank",
+            rel: "noreferrer",
+            style: {
+              fontSize: "11px",
+              color: "inherit",
+              textDecoration: "underline",
+              whiteSpace: "nowrap",
+            },
+            title: selectedPreviewBuild.sourcePullRequest.title,
+          },
+          selectedPreviewBuild.sourcePullRequest.number
+            ? `PR #${selectedPreviewBuild.sourcePullRequest.number}`
+            : "source commit",
+        )
+      : null,
   );
 }
 
@@ -134,9 +265,9 @@ function VersionSwitcher() {
 
 addons.register(ADDON_ID, () => {
   addons.add(TOOL_ID, {
-    title: "Switch version",
+    title: "Switch preview build",
     type: types.TOOL,
     match: () => true, // show on every page (stories + docs)
-    render: VersionSwitcher,
+    render: PreviewBuildSwitcher,
   });
 });

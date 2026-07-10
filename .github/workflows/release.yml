@@ -4,16 +4,16 @@ name: Release & Deploy Storybook
 #   push to main  — changesets creates/updates a "Version Packages" PR, or
 #                   publishes packages when that PR is merged (and then
 #                   deploys Storybook automatically).
-#   manual        — lets you deploy any specific version without a release.
+#   manual        — lets you deploy a new preview build without a release.
 on:
   push:
     branches:
       - main
   workflow_dispatch:
     inputs:
-      storybook-version:
-        description: "Storybook version to deploy (e.g. v0.0.3) — skips publish"
-        required: true
+      preview-id:
+        description: "Optional preview id override (e.g. preview-003). If omitted, next id is auto-assigned."
+        required: false
 
 # Prevent concurrent runs that could race on the gh-pages branch.
 concurrency:
@@ -73,38 +73,47 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # also required by the action for GitHub API calls (PRs, releases)
 
-      # ── Determine Storybook version ──────────────────────────────────────────
-      - name: Determine Storybook version
-        id: sb-version
+      # ── Determine preview build parameters ────────────────────────────────────
+      - name: Determine preview build parameters
+        id: preview-build
         # Run when packages were just published OR when triggered manually.
         if: >-
           (github.event_name == 'push' && steps.changesets.outputs.published == 'true')
           || github.event_name == 'workflow_dispatch'
         env:
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
-          MANUAL_VERSION: ${{ inputs.storybook-version }}
+          MANUAL_PREVIEW_ID: ${{ inputs.preview-id }}
         run: |
-          if [ -n "$MANUAL_VERSION" ]; then
-            # Manual dispatch: use the provided version directly.
-            echo "version=$MANUAL_VERSION" >> "$GITHUB_OUTPUT"
+          if [ -n "$MANUAL_PREVIEW_ID" ]; then
+            echo "preview_id=$MANUAL_PREVIEW_ID" >> "$GITHUB_OUTPUT"
           else
-            # Auto: pick the highest semantic version from publishedPackages.
-            VERSION=$(node -e "
-              const pkgs = JSON.parse(process.env.PUBLISHED_PACKAGES || '[]');
-              if (!pkgs.length) { process.stderr.write('No published packages\n'); process.exit(1); }
-              const sorted = pkgs
-                .map(p => p.version)
-                .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
-              process.stdout.write('v' + sorted[0]);
-            ")
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "preview_id=" >> "$GITHUB_OUTPUT"
           fi
 
+          # Publish path: pass changed packages from changesets output.
+          # Manual path: if no publish metadata is present, pass empty array.
+          node -e "
+            let pkgs = [];
+            try {
+              const raw = process.env.PUBLISHED_PACKAGES;
+              pkgs = raw ? JSON.parse(raw) : [];
+            } catch {
+              pkgs = [];
+            }
+
+            if (!Array.isArray(pkgs)) pkgs = [];
+            process.stdout.write('changed_packages_json=' + JSON.stringify(pkgs) + '\\n');
+          " >> "$GITHUB_OUTPUT"
+
       # ── Deploy Storybook ─────────────────────────────────────────────────────
-      - name: Deploy Storybook ${{ steps.sb-version.outputs.version }}
-        if: steps.sb-version.outputs.version != ''
+      - name: Deploy Storybook preview build
+        if: >-
+          (github.event_name == 'push' && steps.changesets.outputs.published == 'true')
+          || github.event_name == 'workflow_dispatch'
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          CHANGED_PACKAGES_JSON: ${{ steps.preview-build.outputs.changed_packages_json }}
           # GITHUB_TOKEN is inherited from the job-level token; the remote URL
           # set by actions/checkout@v4 already includes it, so git push works.
-        run: node scripts/deploy-storybook.mjs ${{ steps.sb-version.outputs.version }}
+        run: node scripts/deploy-storybook.mjs ${{ steps.preview-build.outputs.preview_id }}
