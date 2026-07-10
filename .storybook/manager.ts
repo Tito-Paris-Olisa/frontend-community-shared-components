@@ -58,7 +58,9 @@ function getSiteRoot(): string {
 }
 
 /** Returns current target as either latest or a preview id. */
-function getCurrentTarget(): { mode: "latest" } | { mode: "preview"; previewId: string } {
+function getCurrentTarget():
+  | { mode: "latest" }
+  | { mode: "preview"; previewId: string } {
   const segments = window.location.pathname.split("/").filter(Boolean);
 
   if (segments[1] === "previews" && segments[2]) {
@@ -91,7 +93,10 @@ function getPackageStoryKey(packageName: string): string {
   return normalize(slug);
 }
 
-function isBuildRelevantToStory(build: PreviewBuild, storyId: string | null): boolean {
+function isBuildRelevantToStory(
+  build: PreviewBuild,
+  storyId: string | null,
+): boolean {
   if (!storyId) return false;
   const normalizedStoryId = normalize(storyId);
 
@@ -154,7 +159,8 @@ function PreviewBuildSwitcher() {
   const selectedPreviewBuild =
     selectedValue === "latest"
       ? null
-      : previewBuilds.find((build) => build.previewId === selectedValue) ?? null;
+      : (previewBuilds.find((build) => build.previewId === selectedValue) ??
+        null);
 
   const relevantCount = relevantPreviewIds.size;
 
@@ -234,7 +240,8 @@ function PreviewBuildSwitcher() {
           opacity: 0.75,
           whiteSpace: "nowrap",
         },
-        title: "Preview builds relevant to this story based on changed packages",
+        title:
+          "Preview builds relevant to this story based on changed packages",
       },
       storyId ? `${relevantCount} relevant` : "all previews",
     ),
